@@ -26,24 +26,28 @@ class LoginViewModel : ViewModel() {
     private val _passwordError = MutableStateFlow(false)
     val passwordError: StateFlow<Boolean> = _passwordError.asStateFlow()
 
-    // One-off events (snackbar messages) shouldn't be regular state, since state
-    // replays its last value on every new collector (e.g. after rotation), which
-    // would re-show a stale snackbar. A SharedFlow with no replay avoids that.
+    // One-off events (snackbar messages, navigation triggers) shouldn't be regular
+    // state, since state replays its last value to every new collector (e.g. after
+    // rotation), which would re-show a stale snackbar or re-trigger navigation.
+    // A SharedFlow with no replay avoids that.
     private val _snackbarMessage = MutableSharedFlow<String>()
     val snackbarMessage: SharedFlow<String> = _snackbarMessage
 
-    fun onEmailChange(value: String) {
-        _email.value = value
+    private val _loginSuccessEvent = MutableSharedFlow<Unit>()
+    val loginSuccessEvent: SharedFlow<Unit> = _loginSuccessEvent
+
+    fun onEmailChange(email: String) {
+        _email.value = email
         _emailError.value = false
     }
 
-    fun onPasswordChange(value: String) {
-        _password.value = value
+    fun onPasswordChange(password: String) {
+        _password.value = password
         _passwordError.value = false
     }
 
-    fun onRememberSessionChange(value: Boolean) {
-        _rememberSession.value = value
+    fun onRememberSessionChange(rememberSession: Boolean) {
+        _rememberSession.value = rememberSession
     }
 
     fun validateAndLogin() {
@@ -54,10 +58,10 @@ class LoginViewModel : ViewModel() {
         _passwordError.value = !isPasswordValid
 
         viewModelScope.launch {
-            if (!isEmailValid || !isPasswordValid) {
-                _snackbarMessage.emit("Please review the marked fields")
+            if (isEmailValid && isPasswordValid) {
+                _loginSuccessEvent.emit(Unit)
             } else {
-                _snackbarMessage.emit("Welcome to SoundIn")
+                _snackbarMessage.emit("Please review the marked fields")
             }
         }
     }

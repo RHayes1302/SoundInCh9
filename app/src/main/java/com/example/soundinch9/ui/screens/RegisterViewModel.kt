@@ -55,12 +55,12 @@ class RegisterViewModel : ViewModel() {
 
     // One-off events shouldn't be regular state (state replays its last value to
     // every new collector, e.g. after rotation, which would re-show a stale
-    // snackbar). A SharedFlow with no replay avoids that - same pattern as LoginViewModel.
+    // snackbar or re-trigger navigation). A SharedFlow with no replay avoids that.
     private val _snackbarMessage = MutableSharedFlow<String>()
     val snackbarMessage: SharedFlow<String> = _snackbarMessage
 
-    private val _registrationComplete = MutableStateFlow(false)
-    val registrationComplete: StateFlow<Boolean> = _registrationComplete.asStateFlow()
+    private val _registerSuccessEvent = MutableSharedFlow<Unit>()
+    val registerSuccessEvent: SharedFlow<Unit> = _registerSuccessEvent
 
     fun onNameChange(value: String) {
         _name.value = value
@@ -134,8 +134,7 @@ class RegisterViewModel : ViewModel() {
 
         viewModelScope.launch {
             if (isFormValid) {
-                _registrationComplete.value = true
-                _snackbarMessage.emit("Account created successfully")
+                _registerSuccessEvent.emit(Unit)
             } else {
                 _snackbarMessage.emit("Invalid data")
             }

@@ -8,7 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import com.example.soundinch9.ui.navigation.SoundInNavHost
+import androidx.navigation.compose.rememberNavController
+import com.example.soundinch9.ui.navigation.SoundInNavGraph
 import com.example.soundinch9.ui.theme.SoundInCh9Theme
 
 class MainActivity : ComponentActivity() {
@@ -21,7 +22,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    SoundInNavHost()
+                    val navController = rememberNavController()
+                    SoundInNavGraph(navController = navController)
                 }
             }
         }

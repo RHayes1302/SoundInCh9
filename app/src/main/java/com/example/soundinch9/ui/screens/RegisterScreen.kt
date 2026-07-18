@@ -77,6 +77,7 @@ private fun formatBirthDate(millis: Long): String {
 @Composable
 fun RegisterScreen(
     onNavigateBack: () -> Unit,
+    onRegisterSuccess: () -> Unit,
     viewModel: RegisterViewModel = viewModel(),
 ) {
     val name by viewModel.name.collectAsStateWithLifecycle()
@@ -101,6 +102,12 @@ fun RegisterScreen(
     LaunchedEffect(Unit) {
         viewModel.snackbarMessage.collect { message ->
             snackbarHostState.showSnackbar(message)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.registerSuccessEvent.collect {
+            onRegisterSuccess()
         }
     }
 
