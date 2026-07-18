@@ -17,19 +17,24 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,26 +44,73 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen() {}
+fun LoginScreen(
+    onNavigateToRegister: () -> Unit,
+    viewModel: LoginViewModel = viewModel(),
+) {
+    val email by viewModel.email.collectAsStateWithLifecycle()
+    val password by viewModel.password.collectAsStateWithLifecycle()
+    val rememberSession by viewModel.rememberSession.collectAsStateWithLifecycle()
+    val emailError by viewModel.emailError.collectAsStateWithLifecycle()
+    val passwordError by viewModel.passwordError.collectAsStateWithLifecycle()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        viewModel.snackbarMessage.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(text = "SoundIn") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) { paddingValues ->
+        LoginContent(
+            paddingValues = paddingValues,
+            email = email,
+            onEmailChange = viewModel::onEmailChange,
+            password = password,
+            onPasswordChange = viewModel::onPasswordChange,
+            rememberSession = rememberSession,
+            onRememberSessionChange = viewModel::onRememberSessionChange,
+            emailError = emailError,
+            passwordError = passwordError,
+            onLoginClick = viewModel::validateAndLogin,
+            onNavigateToRegister = onNavigateToRegister
+        )
+    }
+}
 
 @Composable
 fun LoginContent(
     paddingValues: PaddingValues,
-    snackbarHostState: SnackbarHostState,
-    scope: CoroutineScope,
+    email: String,
+    onEmailChange: (String) -> Unit,
+    password: String,
+    onPasswordChange: (String) -> Unit,
+    rememberSession: Boolean,
+    onRememberSessionChange: (Boolean) -> Unit,
+    emailError: Boolean,
+    passwordError: Boolean,
+    onLoginClick: () -> Unit,
     onNavigateToRegister: () -> Unit,
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf(value = "") }
-    var rememberSession by remember { mutableStateOf(value = false) }
-    var emailError by remember { mutableStateOf(value = false) }
-    var passwordError by remember { mutableStateOf(value = false) }
-    var passwordVisible by remember { mutableStateOf(value = false) }
+    // Purely visual, per-composition state (not form data) - fine to keep local.
+    var passwordVisible by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -85,7 +137,7 @@ fun LoginContent(
 
         OutlinedTextField(
             value = email,
-            onValueChange = { email = it; emailError = false },
+            onValueChange = onEmailChange,
             label = { Text("Email Address") },
             isError = emailError,
             supportingText = {
@@ -103,7 +155,7 @@ fun LoginContent(
 
         OutlinedTextField(
             value = password,
-            onValueChange = { password = it; passwordError = false },
+            onValueChange = onPasswordChange,
             label = { Text("Password") },
             isError = passwordError,
             supportingText = {
@@ -141,29 +193,14 @@ fun LoginContent(
             Text(text = "Remember me")
             Switch(
                 checked = rememberSession,
-                onCheckedChange = { rememberSession = it }
+                onCheckedChange = onRememberSessionChange
             )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = {
-                emailError = !email.contains(char = '@') || !email.contains(char = '.')
-                passwordError = password.length < 6
-                if (emailError || passwordError) {
-                    scope.launch {
-                        snackbarHostState.showSnackbar(
-                            message = "Please review the marked fields",
-                            actionLabel = "Dismiss"
-                        )
-                    }
-                } else {
-                    scope.launch {
-                        snackbarHostState.showSnackbar(message = "Welcome to SoundIn")
-                    }
-                }
-            },
+            onClick = onLoginClick,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(text = "Login")
@@ -180,8 +217,15 @@ fun LoginContent(
 fun LoginContentPreview() {
     LoginContent(
         paddingValues = PaddingValues(),
-        snackbarHostState = SnackbarHostState(),
-        scope = rememberCoroutineScope(),
+        email = "",
+        onEmailChange = {},
+        password = "",
+        onPasswordChange = {},
+        rememberSession = false,
+        onRememberSessionChange = {},
+        emailError = false,
+        passwordError = false,
+        onLoginClick = {},
         onNavigateToRegister = {}
     )
 }
