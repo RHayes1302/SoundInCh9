@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import com.example.soundinch9.ui.screens.LoginScreen
+import com.example.soundinch9.ui.navigation.SoundInNavHost
 import com.example.soundinch9.ui.theme.SoundInCh9Theme
 
 class MainActivity : ComponentActivity() {
@@ -21,11 +21,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    LoginScreen(
-                        onNavigateToRegister = {
-                            // TODO: hook up navigation to the register screen once it exists
-                        }
-                    )
+                    SoundInNavHost()
                 }
             }
         }
