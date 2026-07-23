@@ -23,6 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
@@ -31,10 +32,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,38 +43,26 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-
+import com.example.soundinch9.ui.viewmodel.LoginViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
-    onNavigateToRegister: () -> Unit,
-    onLoginSuccess: () -> Unit,
     viewModel: LoginViewModel = viewModel(),
+    onNavigateToRegister: () -> Unit,
+    onLoginSuccess: (email: String) -> Unit
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     val email by viewModel.email.collectAsStateWithLifecycle()
     val password by viewModel.password.collectAsStateWithLifecycle()
     val rememberSession by viewModel.rememberSession.collectAsStateWithLifecycle()
     val emailError by viewModel.emailError.collectAsStateWithLifecycle()
     val passwordError by viewModel.passwordError.collectAsStateWithLifecycle()
-
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(Unit) {
-        viewModel.snackbarMessage.collect { message ->
-            snackbarHostState.showSnackbar(message)
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.loginSuccessEvent.collect {
-            onLoginSuccess()
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -90,14 +79,32 @@ fun LoginScreen(
         LoginContent(
             paddingValues = paddingValues,
             email = email,
-            onEmailChange = viewModel::onEmailChange,
             password = password,
-            onPasswordChange = viewModel::onPasswordChange,
             rememberSession = rememberSession,
-            onRememberSessionChange = viewModel::onRememberSessionChange,
             emailError = emailError,
             passwordError = passwordError,
-            onLoginClick = viewModel::validateAndLogin,
+            onEmailChange = viewModel::onEmailChange,
+            onPasswordChange = viewModel::onPasswordChange,
+            onRememberSessionChange = viewModel::onRememberSessionChange,
+            onLoginClick = {
+                val isValid = viewModel.validateAndLogin()
+                scope.launch {
+                    if (isValid) {
+                        snackbarHostState.showSnackbar(
+                            message = "Welcome to SoundIn",
+                            actionLabel = "Done",
+                            duration = SnackbarDuration.Short
+                        )
+                        onLoginSuccess(email)
+                    } else {
+                        snackbarHostState.showSnackbar(
+                            message = "Please review the marked fields",
+                            actionLabel = "Dismiss",
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+                }
+            },
             onNavigateToRegister = onNavigateToRegister
         )
     }
@@ -107,26 +114,25 @@ fun LoginScreen(
 fun LoginContent(
     paddingValues: PaddingValues,
     email: String,
-    onEmailChange: (String) -> Unit,
     password: String,
-    onPasswordChange: (String) -> Unit,
     rememberSession: Boolean,
-    onRememberSessionChange: (Boolean) -> Unit,
     emailError: Boolean,
     passwordError: Boolean,
+    onEmailChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onRememberSessionChange: (Boolean) -> Unit,
     onLoginClick: () -> Unit,
     onNavigateToRegister: () -> Unit,
 ) {
-    // Purely visual, per-composition state (not form data) - fine to keep local.
     var passwordVisible by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(color = MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.background)
             .padding(paddingValues)
-            .verticalScroll(state = rememberScrollState())
-            .padding(all = 24.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -140,12 +146,11 @@ fun LoginContent(
             text = "SoundIn",
             style = MaterialTheme.typography.headlineSmall
         )
-
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
             value = email,
-            onValueChange = onEmailChange,
+            onValueChange = { onEmailChange(it) },
             label = { Text("Email Address") },
             isError = emailError,
             supportingText = {
@@ -159,27 +164,30 @@ fun LoginContent(
             ),
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
             value = password,
-            onValueChange = onPasswordChange,
+            onValueChange = { onPasswordChange(it) },
             label = { Text("Password") },
             isError = passwordError,
             supportingText = {
                 if (passwordError) {
-                    Text(text = "Minimum 6 Characters")
+                    Text(text = "Minimum 6 characters")
                 }
             },
-            visualTransformation = if (passwordVisible) {
+            visualTransformation = (if (passwordVisible) {
                 VisualTransformation.None
             } else {
-                PasswordVisualTransformation()
-            },
+                PasswordVisualTransformation(mask = '*')
+            }),
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
-                        imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                        imageVector = if (passwordVisible) {
+                            Icons.Default.Visibility
+                        } else {
+                            Icons.Default.VisibilityOff
+                        },
                         contentDescription = if (passwordVisible) "Hide password" else "Show password"
                     )
                 }
@@ -191,49 +199,28 @@ fun LoginContent(
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(text = "Remember me")
+            Text(
+                text = "Remember Session",
+                style = MaterialTheme.typography.bodyMedium
+            )
             Switch(
                 checked = rememberSession,
-                onCheckedChange = onRememberSessionChange
+                onCheckedChange = { onRememberSessionChange(it) }
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
         Button(
-            onClick = onLoginClick,
+            onClick = { onLoginClick() },
             modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(text = "Login")
-        }
+        ) { Text(text = "Login") }
 
         TextButton(onClick = onNavigateToRegister) {
             Text(text = "Don't have an account? Register")
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LoginContentPreview() {
-    LoginContent(
-        paddingValues = PaddingValues(),
-        email = "",
-        onEmailChange = {},
-        password = "",
-        onPasswordChange = {},
-        rememberSession = false,
-        onRememberSessionChange = {},
-        emailError = false,
-        passwordError = false,
-        onLoginClick = {},
-        onNavigateToRegister = {}
-    )
 }
