@@ -10,12 +10,21 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.soundinch9.ui.UserSessionViewModel
 import com.example.soundinch9.ui.components.BottomNavigationBar
+import com.example.soundinch9.ui.model.Playlist
 import com.example.soundinch9.ui.navigation.SoundInRoutes
 import com.example.soundinch9.ui.theme.SoundInCh9Theme
 
+
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    sessionViewModel: UserSessionViewModel, onLogout:() -> Unit,
+    onNavigateToPlaylistDetail:(Playlist) -> Unit
+
+
+
+) {
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
@@ -43,15 +52,11 @@ fun MainScreen() {
         ) {
             composable(SoundInRoutes.LIBRARY) { LibraryScreen() }
             composable(SoundInRoutes.SEARCH) { SearchScreen() }
-            composable(SoundInRoutes.PROFILE) { ProfileScreen() }
+            composable(SoundInRoutes.PROFILE) { ProfileScreen(
+           sessionViewModel = sessionViewModel,
+                onLogout=onLogout
+            ) }
         }
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun MainScreenPreview() {
-    SoundInCh9Theme {
-        MainScreen()
-    }
-}

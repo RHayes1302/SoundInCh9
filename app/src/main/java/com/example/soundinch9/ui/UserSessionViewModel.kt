@@ -1,4 +1,4 @@
-package com.example.soundinch9.ui.viewmodel
+package com.example.soundinch9.ui
 
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,13 +15,19 @@ class UserSessionViewModel : ViewModel() {
     val userEmail: StateFlow<String> = _userEmail.asStateFlow()
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
-    fun login(name: String, email: String) {
+    fun onLoginSuccess(name: String, email: String) {
         _userName.value = name
         _userEmail.value = email
         _isLoggedIn.value = true
     }
 
-    fun logout() {
+    fun onRegisterSuccess(name: String, email: String) {
+        _userName.value = name
+        _userEmail.value = email
+        _isLoggedIn.value = true
+    }
+
+    fun onLogout() {
         _userName.value = ""
         _userEmail.value = ""
         _isLoggedIn.value = false
